@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Truth Blitz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.52/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- IMPROVED DOODLE THEME --- */
+        :root {
+            --font-doodle: 'Architects Daughter', cursive;
+            --font-data: 'Nunito', sans-serif;
+            --color-ink: #1e293b;
+            --color-paper: #fffef9;
+            --color-accent: #6366f1;
+            --color-accent-light: #818cf8;
+            --border-sketch: 3px solid var(--color-ink);
+            --shadow-sketch: 5px 5px 0px rgba(30, 41, 59, 0.25);
+        }
+
+        /* Theme Colors */
+        .theme-indigo { 
+            --color-accent: #6366f1; 
+            --color-accent-light: #818cf8;
+        }
+        .theme-cyan { 
+            --color-accent: #06b6d4; 
+            --color-accent-light: #22d3ee;
+        }
+        .theme-pink { 
+            --color-accent: #ec4899; 
+            --color-accent-light: #f472b6;
+        }
+
+        /* Dark Mode - High Contrast */
+        .dark-mode {
+            --color-ink: #f1f5f9;
+            --color-paper: #0f172a;
+            --border-sketch: 3px solid #f1f5f9;
+            --shadow-sketch: 5px 5px 0px rgba(241, 245, 249, 0.2);
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            overscroll-behavior: none;
+            touch-action: pan-y;
+            user-select: none;
+            font-family: var(--font-doodle);
+            background-color: var(--color-paper);
+            color: var(--color-ink);
+            transition: background-color 0.4s ease, color 0.4s ease;
+            overflow: hidden;
+        }
+
+        /* Subtle graph paper */
+        .bg-graph {
+            background-image: 
+                linear-gradient(rgba(100, 116, 139, 0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(100, 116, 139, 0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        
+        /* Enhanced Sketchy Box */
+        .sketch-box {
+            border: var(--border-sketch);
+            border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+            box-shadow: var(--shadow-sketch);
+            transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+            background-color: white;
+        }
+        .dark-mode .sketch-box { 
+            background-color: #1e293b;
+            color: var(--color-ink);
+        }
+        
+        .sketch-box:active {
+            transform: translate(3px, 3px);
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+        }
+        /* Class to simulate active state programmatically */
+        .simulated-active {
+            transform: translate(3px, 3px) !important;
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.2) !important;
+        }
+
+        /* Card Stack - Better positioning */
+        .card-container { 
+            perspective: 1000px;
+        }
+        
+        .tinder-card {
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            transform-style: preserve-3d;
+            cursor: grab; 
+            will-change: transform;
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            align-items: center; 
+            padding: 2.5rem; 
+            text-align: center;
+            background-color: white;
+            border: var(--border-sketch);
+            border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+            box-shadow: var(--shadow-sketch);
+        }
+        .dark-mode .tinder-card { 
+            background-color: #1e293b; 
+            color: var(--color-ink); 
+        }
+
+        /* Fact Text Font override */
+        .fact-text {
+            font-family: var(--font-data);
+        }
+
+        /* Improved Stamps */
+        .status-stamp {
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%) rotate(-15deg) scale(0.5); 
+            padding: 1.25rem 2.5rem;
+            border: 8px solid; 
+            border-radius: 20px;
+            font-size: 4rem; 
+            font-weight: 900; 
+            text-transform: uppercase;
+            opacity: 0; 
+            transition: opacity 0.15s, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 20;
+            background: rgba(255,255,255,0.95);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            pointer-events: none;
+        }
+        .dark-mode .status-stamp { 
+            background: rgba(15, 23, 42, 0.95); 
+        }
+        
+        .stamp-true { 
+            color: #16a34a; 
+            border-color: #16a34a; 
+        }
+        .stamp-false { 
+            color: #dc2626; 
+            border-color: #dc2626; 
+            transform: translate(-50%, -50%) rotate(15deg) scale(0.5); 
+        }
+        
+        .stamp-visible { 
+            opacity: 1 !important; 
+            transform: translate(-50%, -50%) rotate(-15deg) scale(1) !important; 
+        }
+        .stamp-visible-false { 
+            opacity: 1 !important; 
+            transform: translate(-50%, -50%) rotate(15deg) scale(1) !important; 
+        }
+
+        /* Floating feedback */
+        @keyframes floatUp { 
+            0% { transform: translateY(0) scale(0.5); opacity: 1; } 
+            100% { transform: translateY(-120px) scale(1.5); opacity: 0; } 
+        }
+        .feedback-anim { 
+            position: absolute; 
+            pointer-events: none; 
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 50; 
+            font-weight: 900; 
+            font-size: 3.5rem; 
+            -webkit-text-stroke: 3px white; 
+            text-shadow: 5px 5px 0px rgba(0,0,0,0.15);
+            width: 100%;
+            text-align: center;
+            top: 40%;
+            left: 0;
+        }
+        /* Dark mode specific fix for feedback visibility */
+        .dark-mode .feedback-anim { 
+            -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.9);
+            filter: drop-shadow(0 0 8px rgba(0,0,0,0.8));
+            text-shadow: none;
+        }
+        
+        /* Particles */
+        .particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 100;
+            animation: particle-anim 0.8s ease-out forwards;
+            will-change: transform, opacity;
+        }
+        @keyframes particle-anim {
+            0% { transform: translate(-50%, -50%) translate(0, 0) scale(0.5) rotate(0deg); opacity: 1; }
+            100% { transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(1.2) rotate(var(--rot)); opacity: 0; }
+        }
+
+        /* Fuse Timer Bar */
+        .fuse-container {
+            position: relative;
+            width: 100%;
+            height: 12px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .fuse-bar {
+            height: 100%;
+            background: #16a34a;
+            width: 100%;
+            transform-origin: left center;
+            transition: width 1s linear, background-color 0.3s ease;
+        }
+        
+        @keyframes wiggle { 
+            0% { transform: rotate(0deg); } 
+            25% { transform: rotate(-3deg); } 
+            50% { transform: rotate(3deg); } 
+            75% { transform: rotate(-1deg); } 
+            100% { transform: rotate(0deg); } 
+        }
+        .wiggle-hover:hover { 
+            animation: wiggle 0.4s ease-in-out; 
+        }
+
+        /* NEW VISUAL FEEDBACK ANIMATIONS */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+            20%, 40%, 60%, 80% { transform: translateX(8px); }
+        }
+        .anim-shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes flashGreen {
+            0% { background-color: var(--color-paper); }
+            15% { background-color: rgba(22, 163, 74, 0.2); } /* Green tint */
+            100% { background-color: var(--color-paper); }
+        }
+        @keyframes flashRed {
+            0% { background-color: var(--color-paper); }
+            15% { background-color: rgba(220, 38, 38, 0.2); } /* Red tint */
+            100% { background-color: var(--color-paper); }
+        }
+        .anim-flash-green { animation: flashGreen 0.4s ease-out; }
+        .anim-flash-red { animation: flashRed 0.4s ease-out; }
+
+        @keyframes heartPop { 
+            0% { transform: scale(0); opacity: 0; } 
+            50% { transform: scale(1.3); opacity: 1; } 
+            100% { transform: scale(1); opacity: 0; } 
+        }
+        .heart-anim { 
+            position: absolute; 
+            pointer-events: none; 
+            z-index: 60; 
+            color: #ec4899; 
+            animation: heartPop 0.7s ease-out forwards; 
+        }
+
+        .toast-msg {
+            position: fixed; 
+            bottom: 40px; 
+            left: 50%; 
+            transform: translateX(-50%);
+            z-index: 100; 
+            background: var(--color-ink); 
+            color: var(--color-paper);
+            padding: 14px 28px; 
+            border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+            font-weight: bold; 
+            font-size: 1.1rem;
+            animation: slideUpFade 2.5s ease-in-out forwards;
+            white-space: nowrap;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        @keyframes slideUpFade { 
+            0% { transform: translate(-50%, 150%); opacity: 0; } 
+            10% { transform: translate(-50%, 0); opacity: 1; } 
+            90% { transform: translate(-50%, 0); opacity: 1; } 
+            100% { transform: translate(-50%, 150%); opacity: 0; } 
+        }
+
+        .scribble-underline { 
+            position: relative; 
+            display: inline-block; 
+        }
+        .scribble-underline::after {
+            content: ""; 
+            position: absolute; 
+            left: 0; 
+            bottom: -8px; 
+            width: 100%; 
+            height: 10px;
+            background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 15' preserveAspectRatio='none'><path d='M0,5 Q50,15 100,5 T200,5' fill='none' stroke='%236366f1' stroke-width='4'/></svg>") no-repeat center center;
+            background-size: 100% 100%;
+        }
+
+        /* Better control buttons */
+        .control-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        .control-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+        }
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 rgba(0,0,0,0.2);
+        }
+        .dark-mode #btn-false {
+            background-color: #7f1d1d !important;
+            color: #fecaca !important;
+        }
+        .dark-mode #btn-true {
+            background-color: #14532d !important;
+            color: #bbf7d0 !important;
+        }
+
+        /* Layout improvements */
+        .game-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body class="bg-graph">
+
+    <div class="game-layout">
+        
+        <!-- COMPACT HEADER -->
+        <div id="game-header" class="hidden px-6 py-4 flex flex-col gap-2">
+            <div class="flex items-center justify-between w-full">
+                <!-- Score -->
+                <div class="flex flex-col" style="min-width: 100px;">
+                    <span class="text-xs font-bold uppercase opacity-50">Score</span>
+                    <div class="flex items-center gap-2">
+                        <span id="score-display" class="text-3xl font-black" style="color: var(--color-accent);">0</span>
+                        <span id="streak-display" class="text-sm font-bold text-amber-500 opacity-0 transition-opacity">🔥 0x</span>
+                    </div>
+                </div>
+                
+                <!-- Pause -->
+                <button id="pause-btn" class="w-14 h-14 flex items-center justify-center sketch-box hover:scale-105 transition-transform">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </button>
+                
+                <!-- Timer Text -->
+                <div class="flex flex-col items-end" style="min-width: 100px;">
+                    <span class="text-xs font-bold uppercase opacity-50">Time</span>
+                    <span id="timer-display" class="text-3xl font-black tabular-nums">60</span>
+                </div>
+            </div>
+            
+            <!-- Fuse Timer Bar -->
+            <div class="fuse-container">
+                <div id="fuse-bar" class="fuse-bar"></div>
+            </div>
+        </div>
+
+        <!-- MAIN GAME AREA - Centered -->
+        <div class="flex-1 flex flex-col justify-center items-center relative px-4 pb-4">
+            
+            <!-- INTRO SCREEN -->
+            <div id="intro-screen" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-30" style="background-color: var(--color-paper);">
+                <div class="mb-16 relative">
+                    <div class="absolute -top-16 -left-10 w-20 h-20 rounded-full blur-2xl opacity-40" style="background: var(--color-accent);"></div>
+                    <h1 class="text-7xl font-black tracking-tight leading-none relative z-10 rotate-[-2deg]">
+                        Truth<br>
+                        <span class="text-6xl scribble-underline" style="color: var(--color-accent);">Blitz</span>
+                    </h1>
+                    <p class="mt-6 text-lg font-bold opacity-60 rotate-1">Think fast, swipe faster.</p>
+                </div>
+                
+                <div class="w-full max-w-xs space-y-3">
+                    <button id="start-btn" class="w-full py-4 text-white text-xl font-black sketch-box wiggle-hover" style="background-color: var(--color-accent);">
+                        <span id="start-btn-text">Start Blitz</span>
+                        <span id="start-btn-loading" class="hidden">Loading Facts...</span>
+                    </button>
+                    <button id="vault-btn" class="w-full py-3 text-lg font-bold sketch-box wiggle-hover flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> Vault
+                    </button>
+                    <button id="settings-btn" class="w-full py-3 text-lg font-bold sketch-box wiggle-hover flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m5.2-15.2l-4.2 4.2m0 6l-4.2 4.2M23 12h-6m-6 0H5m15.2 5.2l-4.2-4.2m0-6l-4.2-4.2"/></svg> Settings
+                    </button>
+                </div>
+            </div>
+
+            <!-- PAUSE MODAL -->
+            <div id="pause-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center p-6 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md">
+                <div class="w-full max-w-xs sketch-box p-8 text-center shadow-2xl">
+                    <h2 class="text-5xl font-black mb-8 rotate-[-1deg]" style="color: var(--color-accent);">Paused</h2>
+                    <div class="space-y-3">
+                        <button id="resume-btn" class="w-full py-4 text-white font-black text-xl sketch-box" style="background-color: var(--color-accent);">
+                            Resume
+                        </button>
+                        <button id="pause-menu-btn" class="w-full py-3 font-bold text-lg sketch-box" style="background-color: #fee; color: #dc2626; border-color: #dc2626;">
+                            Quit to Menu
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TUTORIAL SCREEN -->
+            <div id="tutorial-screen" class="hidden absolute inset-0 z-30 flex flex-col transition-all duration-300" style="background-color: var(--color-paper);">
+                <div class="p-4 flex items-center justify-between border-b-2 border-dashed" style="border-color: var(--color-accent);">
+                    <button id="tutorial-back-btn" class="w-12 h-12 flex items-center justify-center sketch-box hover:scale-105 transition-all active:scale-95">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7 7l-7-7 7-7"/></svg>
+                    </button>
+                    <h2 class="font-black text-2xl">How to Play</h2>
+                    <div class="w-12"></div>
+                </div>
+                
+                <div class="flex-1 flex flex-col items-center justify-center p-6">
+                
+                <div class="space-y-4 w-full max-w-sm mb-12">
+                    <div class="flex items-center gap-4 sketch-box p-4">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #dcfce7;">
+                            <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 12h14m-7-7l7 7-7 7"/></svg>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-black text-lg">Swipe Right = TRUE</p>
+                            <p class="text-sm opacity-60">It's a real fact!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-4 sketch-box p-4">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #fee;">
+                            <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M19 12H5m7 7l-7-7 7-7"/></svg>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-black text-lg">Swipe Left = FALSE</p>
+                            <p class="text-sm opacity-60">Total fiction!</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-4 sketch-box p-4">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: #fce7f3;">
+                            <svg class="w-6 h-6 text-pink-600" fill="currentColor" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-black text-lg">Double Tap</p>
+                            <p class="text-sm opacity-60">Save to your vault</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="tutorial-start-btn" class="w-full max-w-sm py-4 text-white font-black text-xl sketch-box wiggle-hover" style="background-color: var(--color-accent);">
+                    Let's Go!
+                </button>
+                </div>
+            </div>
+
+            <!-- SETTINGS SCREEN -->
+            <div id="settings-screen" class="hidden absolute inset-0 z-40 flex flex-col transition-all duration-300" style="background-color: var(--color-paper);">
+                <div class="p-4 flex items-center justify-between border-b-2 border-dashed" style="border-color: var(--color-accent);">
+                    <button id="settings-back-btn" class="w-12 h-12 flex items-center justify-center sketch-box hover:scale-105 transition-all active:scale-95">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7 7l-7-7 7-7"/></svg>
+                    </button>
+                    <h2 class="font-black text-2xl">Settings</h2>
+                    <div class="w-12"></div>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div class="sketch-box p-5">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-lg">Sound Effects</span>
+                            <div class="relative w-16 h-9 bg-slate-300 dark:bg-slate-600 rounded-full cursor-pointer border-2" style="border-color: var(--color-ink);" onclick="toggleAudio(event)">
+                                <div id="audio-slider" class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full border-2 transition-all" style="border-color: var(--color-ink);"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="sketch-box p-5">
+                        <span class="font-bold text-lg block mb-5">Marker Color</span>
+                        <div class="flex justify-around px-2">
+                            <button class="w-14 h-14 rounded-full border-4 border-transparent transition-transform hover:scale-110 active:scale-95" data-theme="indigo" onclick="setTheme('indigo')" style="background: #6366f1; box-shadow: 0 4px 0 rgba(99, 102, 241, 0.4);"></button>
+                            <button class="w-14 h-14 rounded-full border-4 border-transparent transition-transform hover:scale-110 active:scale-95" data-theme="cyan" onclick="setTheme('cyan')" style="background: #06b6d4; box-shadow: 0 4px 0 rgba(6, 182, 212, 0.4);"></button>
+                            <button class="w-14 h-14 rounded-full border-4 border-transparent transition-transform hover:scale-110 active:scale-95" data-theme="pink" onclick="setTheme('pink')" style="background: #ec4899; box-shadow: 0 4px 0 rgba(236, 72, 153, 0.4);"></button>
+                        </div>
+                    </div>
+                    
+                    <div class="sketch-box p-5">
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-lg">Blackboard Mode</span>
+                            <div class="relative w-16 h-9 bg-slate-300 dark:bg-slate-600 rounded-full cursor-pointer border-2" style="border-color: var(--color-ink);" onclick="toggleDarkMode(event)">
+                                <div id="dark-mode-slider" class="absolute left-1 top-1 w-6 h-6 bg-white rounded-full border-2 transition-all" style="border-color: var(--color-ink);"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button id="how-to-play-btn" class="w-full sketch-box p-5 text-left font-bold text-lg hover:scale-102 transition-transform active:scale-98 flex items-center justify-between">
+                        <span>How to Play</span>
+                        <svg class="w-6 h-6 opacity-50" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4m0-4h.01"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- VAULT SCREEN -->
+            <div id="vault-screen" class="hidden absolute inset-0 z-40 flex flex-col transition-all duration-300" style="background-color: var(--color-paper);">
+                <div class="p-4 flex items-center justify-between border-b-2 border-dashed" style="border-color: var(--color-accent);">
+                    <button id="vault-back-btn" class="w-12 h-12 flex items-center justify-center sketch-box hover:scale-105 transition-all active:scale-95">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5m7 7l-7-7 7-7"/></svg>
+                    </button>
+                    <h2 class="font-black text-2xl">Truth Vault</h2>
+                    <button id="vault-share-btn" class="w-12 h-12 flex items-center justify-center sketch-box hover:scale-105 transition-all" style="color: var(--color-accent);">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98m-.01-10.98l-6.82 3.98"/></svg>
+                    </button>
+                </div>
+                <div id="vault-list" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+            </div>
+
+            <!-- GAME OVER SCREEN -->
+            <div id="game-over-screen" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center p-6 text-center" style="background-color: var(--color-paper);">
+                <h2 class="text-6xl font-black mb-8 rotate-[-1deg]">Time's Up!</h2>
+                
+                <div class="sketch-box p-8 mb-10 w-full max-w-sm shadow-2xl">
+                    <p class="text-sm font-bold uppercase opacity-50 mb-2">Final Score</p>
+                    <div class="text-7xl font-black mb-6" id="final-score" style="color: var(--color-accent);">0</div>
+                    
+                    <div class="grid grid-cols-2 gap-6 pt-6 border-t-2 border-dashed border-slate-300 dark:border-slate-600">
+                        <div>
+                            <p class="text-xs font-bold text-green-600 uppercase mb-1">Correct</p>
+                            <p class="text-3xl font-black" id="stats-correct">0</p>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold text-red-600 uppercase mb-1">Wrong</p>
+                            <p class="text-3xl font-black" id="stats-wrong">0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="w-full max-w-sm space-y-3">
+                    <button id="restart-btn" class="w-full py-4 text-white font-black text-xl sketch-box" style="background-color: var(--color-accent);">
+                        Play Again
+                    </button>
+                    <button id="share-score-btn" class="w-full py-3 font-bold text-lg sketch-box flex items-center justify-center gap-2" style="background-color: #dcfce7; color: #16a34a; border-color: #16a34a;">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98m-.01-10.98l-6.82 3.98"/></svg> Share Score
+                    </button>
+                    <button id="menu-btn" class="w-full py-3 opacity-60 font-bold hover:opacity-100 transition-opacity">
+                        Back to Menu
+                    </button>
+                </div>
+            </div>
+
+            <!-- CARD STACK - Properly centered -->
+            <div id="card-stack" class="card-container hidden relative w-full max-w-sm" style="height: 55vh; max-height: 500px;"></div>
+
+        </div>
+
+        <!-- CONTROLS - Bottom -->
+        <div id="controls" class="hidden pb-8 flex flex-col items-center gap-3">
+            <!-- Swipe hints -->
+            <div class="flex justify-center gap-12 text-xs font-bold uppercase opacity-40 tracking-wider">
+                <span class="w-24 text-center">← Swipe Left</span>
+                <span class="w-24 text-center">Swipe Right →</span>
+            </div>
+            
+            <!-- Buttons -->
+            <div class="flex justify-center gap-12 transition-opacity">
+                <button id="btn-false" class="control-btn text-red-600 sketch-box" style="background-color: #fee2e2; border-color: #dc2626;">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+                <button id="btn-true" class="control-btn text-green-600 sketch-box" style="background-color: #dcfce7; border-color: #16a34a;">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_SETTINGS = { theme: 'indigo', darkMode: false, audioEnabled: false, tutorialShown: false };
+        let settings = { ...DEFAULT_SETTINGS };
+        let gameState = { score: 0, correctCount: 0, wrongCount: 0, timer: 60, currentStreak: 0, isDragging: false, lastTapTime: 0, status: 'menu' };
+        let currentDeck = [], gameInterval, currentCardEl = null, savedFacts = JSON.parse(localStorage.getItem('factSwipeSaved')) || [];
+        let synth, noise;
+        let tutorialReturnScreen = 'intro'; // Track where to return after tutorial
+        let recentlySeenFacts = JSON.parse(localStorage.getItem('recentFacts')) || [];
+        let factPool = []; // Pool of facts from API
+        const MAX_RECENT = 30; // Don't repeat last 30 facts
+
+        const scoreEl = document.getElementById('score-display');
+        const timerEl = document.getElementById('timer-display');
+        const streakEl = document.getElementById('streak-display');
+        const gameHeader = document.getElementById('game-header');
+        const stackEl = document.getElementById('card-stack');
+        const controlsEl = document.getElementById('controls');
+        const fuseBarEl = document.getElementById('fuse-bar');
+        const btnFalse = document.getElementById('btn-false');
+        const btnTrue = document.getElementById('btn-true');
+        
+        const screens = {
+            intro: document.getElementById('intro-screen'),
+            gameover: document.getElementById('game-over-screen'),
+            vault: document.getElementById('vault-screen'),
+            settings: document.getElementById('settings-screen'),
+            tutorial: document.getElementById('tutorial-screen'),
+            pause: document.getElementById('pause-modal'),
+        };
+
+        function initAudio() {
+            if (Tone.context.state !== 'running') Tone.start();
+            if (settings.audioEnabled && !synth) {
+                synth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { release: 0.1 } }).toDestination();
+                noise = new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination();
+            }
+        }
+        function playSound(type) {
+            if (!settings.audioEnabled) return;
+            initAudio();
+            try {
+                if (type === 'correct') synth.triggerAttackRelease(['C5', 'E5'], '8n');
+                else if (type === 'wrong') noise.triggerAttackRelease('8n');
+                else if (type === 'save') synth.triggerAttackRelease(['G5'], '16n');
+                else if (type === 'streak') synth.triggerAttackRelease(['G6', 'C7'], '16n');
+            } catch (e) {}
+        }
+
+        // Static fallback facts (used if API fails or for offline play)
+        const staticFacts = [
+            { text: "Bananas are technically berries.", isTrue: true },
+            { text: "The Great Wall of China is visible from the moon.", isTrue: false },
+            { text: "Octopuses have three hearts.", isTrue: true },
+            { text: "Humans share 50% of their DNA with bananas.", isTrue: true },
+            { text: "Goldfish have a 3-second memory.", isTrue: false },
+            { text: "Water makes up about 60% of the adult human body.", isTrue: true },
+            { text: "Lightning never strikes the same place twice.", isTrue: false },
+            { text: "Sharks are mammals.", isTrue: false },
+            { text: "Honey never spoils. You can eat 3000 year old honey.", isTrue: true },
+            { text: "The unicorn is the national animal of Scotland.", isTrue: true },
+            { text: "Venus is the hottest planet in the solar system.", isTrue: true },
+            { text: "Napoleon Bonaparte was extremely short.", isTrue: false },
+            { text: "The Eiffel Tower can grow more than 15 cm in summer.", isTrue: true },
+            { text: "Tomatoes are vegetables.", isTrue: false },
+            { text: "Australia is wider than the moon.", isTrue: true },
+            { text: "Sound travels faster in water than in air.", isTrue: true },
+            { text: "Bats are blind.", isTrue: false },
+            { text: "Strawberries are not actual berries.", isTrue: true },
+            { text: "A jiffy is an actual unit of time.", isTrue: true },
+            { text: "Mount Everest is the tallest mountain in the solar system.", isTrue: false },
+            { text: "Sharks existed before trees.", isTrue: true },
+            { text: "A group of flamingos is called a flamboyance.", isTrue: true },
+            { text: "Penguins can fly short distances.", isTrue: false },
+            { text: "The Statue of Liberty was originally brown.", isTrue: true },
+            { text: "Peanuts are a type of nut.", isTrue: false },
+            { text: "The moon has its own light.", isTrue: false },
+            { text: "Caffeine is toxic to cats and dogs.", isTrue: true },
+            { text: "Bulls are enraged by the color red.", isTrue: false },
+            { text: "Humans only use 10% of their brain.", isTrue: false },
+            { text: "Diamonds are the hardest natural material on Earth.", isTrue: true },
+            { text: "The Earth is closer to the sun in summer.", isTrue: false },
+            { text: "Chameleons change color to match their surroundings.", isTrue: false },
+            { text: "A shrimp's heart is in its head.", isTrue: true },
+            { text: "Cows can walk down stairs but not up.", isTrue: false },
+            { text: "The hottest part of a flame is blue.", isTrue: true },
+            { text: "All trees lose their leaves in winter.", isTrue: false },
+            { text: "Your fingernails grow faster than your toenails.", isTrue: true },
+            { text: "The Wright brothers invented the airplane.", isTrue: true },
+            { text: "Glass is a liquid at room temperature.", isTrue: false },
+            { text: "Human blood is blue inside the body.", isTrue: false }
+        ];
+
+        function applyTheme(theme) {
+            document.body.className = `bg-graph theme-${theme}`;
+            if (settings.darkMode) document.body.classList.add('dark-mode');
+        }
+        function loadSettings() {
+            const saved = JSON.parse(localStorage.getItem('factSwipeSettings'));
+            if (saved) settings = { ...DEFAULT_SETTINGS, ...saved };
+            applyTheme(settings.theme);
+            applyDarkMode(settings.darkMode);
+            updateSettingsUI();
+        }
+        function saveSettings() { localStorage.setItem('factSwipeSettings', JSON.stringify(settings)); }
+        function updateSettingsUI() {
+            const darkSlider = document.getElementById('dark-mode-slider');
+            darkSlider.style.transform = settings.darkMode ? 'translateX(1.75rem)' : 'translateX(0)';
+            darkSlider.parentElement.style.backgroundColor = settings.darkMode ? 'var(--color-accent)' : '#cbd5e1';
+
+            const audioSlider = document.getElementById('audio-slider');
+            audioSlider.style.transform = settings.audioEnabled ? 'translateX(1.75rem)' : 'translateX(0)';
+            audioSlider.parentElement.style.backgroundColor = settings.audioEnabled ? 'var(--color-accent)' : '#cbd5e1';
+
+            document.querySelectorAll('[data-theme]').forEach(btn => {
+                btn.style.borderColor = btn.dataset.theme === settings.theme ? 'var(--color-ink)' : 'transparent';
+            });
+        }
+        window.setTheme = (theme) => { settings.theme = theme; applyTheme(theme); saveSettings(); updateSettingsUI(); };
+        window.toggleDarkMode = (e) => { e.preventDefault(); applyDarkMode(!settings.darkMode); };
+        window.toggleAudio = (e) => { e.preventDefault(); settings.audioEnabled = !settings.audioEnabled; saveSettings(); updateSettingsUI(); if(settings.audioEnabled) initAudio(); };
+        function applyDarkMode(isDark) { settings.darkMode = isDark; document.body.classList.toggle('dark-mode', isDark); saveSettings(); updateSettingsUI(); }
+
+        function showScreen(name) {
+            Object.values(screens).forEach(el => {
+                el.classList.add('hidden');
+                el.style.pointerEvents = 'none';
+            });
+            if (screens[name]) {
+                screens[name].classList.remove('hidden');
+                screens[name].style.pointerEvents = 'auto';
+            }
+            
+            if (name === 'playing') {
+                gameHeader.classList.remove('hidden');
+                stackEl.classList.remove('hidden');
+                controlsEl.classList.remove('hidden');
+            } else if (name === 'pause') {
+                gameHeader.classList.remove('hidden');
+                stackEl.classList.remove('hidden');
+                controlsEl.classList.remove('hidden');
+            } else {
+                gameHeader.classList.add('hidden');
+                stackEl.classList.add('hidden');
+                controlsEl.classList.add('hidden');
+            }
+            
+            gameState.status = name;
+        }
+
+        function startGame() {
+            if (!settings.tutorialShown) {
+                tutorialReturnScreen = 'intro';
+                return showScreen('tutorial');
+            }
+            gameState = { ...gameState, score: 0, correctCount: 0, wrongCount: 0, timer: 60, currentStreak: 0, status: 'playing' };
+            updateStreakUI(0);
+            currentDeck = buildBalancedDeck();
+            scoreEl.innerText = '0';
+            timerEl.innerText = '60';
+            timerEl.style.color = 'inherit';
+            fuseBarEl.style.width = '100%';
+            fuseBarEl.style.backgroundColor = '#16a34a';
+            
+            showScreen('playing');
+            stackEl.innerHTML = '';
+            renderNextCard();
+            startTimer();
+        }
+        function startTimer() {
+            clearInterval(gameInterval);
+            gameInterval = setInterval(() => {
+                if (gameState.status !== 'playing') return;
+                gameState.timer--;
+                timerEl.innerText = gameState.timer;
+                
+                // Update Fuse Bar
+                const percentage = (gameState.timer / 60) * 100;
+                fuseBarEl.style.width = `${percentage}%`;
+                
+                // Fuse Color Logic
+                if (gameState.timer > 30) fuseBarEl.style.backgroundColor = '#16a34a'; // Green
+                else if (gameState.timer > 10) fuseBarEl.style.backgroundColor = '#eab308'; // Yellow
+                else {
+                     fuseBarEl.style.backgroundColor = '#dc2626'; // Red
+                     timerEl.style.color = '#dc2626';
+                }
+
+                if (gameState.timer <= 0) endGame();
+            }, 1000);
+        }
+        function pauseGame() {
+            clearInterval(gameInterval);
+            showScreen('pause');
+        }
+        function resumeGame() {
+            showScreen('playing');
+            startTimer();
+        }
+        function endGame() {
+            clearInterval(gameInterval);
+            document.getElementById('final-score').innerText = gameState.score;
+            document.getElementById('stats-correct').innerText = gameState.correctCount;
+            document.getElementById('stats-wrong').innerText = gameState.wrongCount;
+            showScreen('gameover');
+        }
+
+        // Fisher-Yates shuffle algorithm (better than Math.random sort)
+        function shuffle(arr) {
+            const array = [...arr];
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Fetch facts from Open Trivia Database API - REWRITTEN FOR STRAIGHT FACTS
+        async function fetchTriviaFacts() {
+            // Categories: Science(17), Geography(22), History(23), Animals(27)
+            // This filters out Pop Culture, Movies, TV, Music, etc.
+            const categories = [17, 22, 23, 27];
+            
+            // Create parallel requests for variety
+            const requests = categories.map(cat => 
+                fetch(`https://opentdb.com/api.php?amount=12&category=${cat}&type=boolean&encode=url3986`)
+                    .then(res => res.json())
+                    .catch(() => ({ results: [] })) // Handle individual failures gracefully
+            );
+
+            try {
+                const responses = await Promise.all(requests);
+                let combinedResults = [];
+                
+                responses.forEach(data => {
+                    if (data.response_code === 0 && data.results) {
+                        combinedResults = [...combinedResults, ...data.results];
+                    }
+                });
+
+                // Shuffle the mixed categories together
+                if (combinedResults.length > 0) {
+                    const newFacts = combinedResults.map(item => ({
+                        text: decodeURIComponent(item.question),
+                        isTrue: item.correct_answer === 'True'
+                    }));
+                    return shuffle(newFacts);
+                }
+                return [];
+            } catch (error) {
+                console.log('API fetch failed, using static facts');
+                return [];
+            }
+        }
+
+        // Get available facts that haven't been seen recently
+        function getAvailableFacts() {
+            const allFacts = factPool.length > 0 ? factPool : staticFacts;
+            return allFacts.filter(fact => 
+                !recentlySeenFacts.some(seen => seen === fact.text)
+            );
+        }
+
+        // Mark a fact as seen
+        function markFactAsSeen(factText) {
+            if (!recentlySeenFacts.includes(factText)) {
+                recentlySeenFacts.push(factText);
+                if (recentlySeenFacts.length > MAX_RECENT) {
+                    recentlySeenFacts.shift(); // Remove oldest
+                }
+                localStorage.setItem('recentFacts', JSON.stringify(recentlySeenFacts));
+            }
+        }
+
+        // Build a fresh deck with balanced true/false and no recent repeats
+        function buildBalancedDeck() {
+            let available = getAvailableFacts();
+            
+            // If we've seen too many facts, reset but keep last 10
+            if (available.length < 20) {
+                recentlySeenFacts = recentlySeenFacts.slice(-10);
+                localStorage.setItem('recentFacts', JSON.stringify(recentlySeenFacts));
+                available = getAvailableFacts();
+            }
+            
+            // Separate true and false facts
+            const trueFacts = available.filter(f => f.isTrue);
+            const falseFacts = available.filter(f => !f.isTrue);
+            
+            // Build balanced deck
+            const deckSize = Math.min(30, Math.min(trueFacts.length, falseFacts.length) * 2);
+            const halfSize = Math.floor(deckSize / 2);
+            
+            const deck = [
+                ...shuffle(trueFacts).slice(0, halfSize),
+                ...shuffle(falseFacts).slice(0, halfSize)
+            ];
+            
+            return shuffle(deck);
+        }
+
+        // Initialize fact pool on load
+        async function initializeFactPool() {
+            const apiFacts = await fetchTriviaFacts();
+            if (apiFacts.length > 0) {
+                factPool = [...staticFacts, ...apiFacts];
+                console.log(`Loaded ${factPool.length} facts (${staticFacts.length} static + ${apiFacts.length} from API)`);
+            } else {
+                factPool = staticFacts;
+                console.log(`Using ${staticFacts.length} static facts (API unavailable)`);
+            }
+        }
+
+        // Refresh fact pool if running low
+        async function refreshFactPoolIfNeeded() {
+            const availableFacts = getAvailableFacts();
+            if (availableFacts.length < 15 && factPool.length < 100) {
+                console.log('Fetching more facts...');
+                const newFacts = await fetchTriviaFacts();
+                if (newFacts.length > 0) {
+                    // Add new facts that aren't duplicates
+                    newFacts.forEach(newFact => {
+                        if (!factPool.some(existing => existing.text === newFact.text)) {
+                            factPool.push(newFact);
+                        }
+                    });
+                    console.log(`Fact pool refreshed: ${factPool.length} total facts`);
+                }
+            }
+        }
+
+        function renderNextCard() {
+            if (currentDeck.length === 0) {
+                currentDeck = buildBalancedDeck();
+                refreshFactPoolIfNeeded(); // Background refresh when deck runs out
+            }
+            while (stackEl.children.length < 2) {
+                if(currentDeck.length === 0) currentDeck = buildBalancedDeck();
+                const fact = currentDeck.pop();
+                markFactAsSeen(fact.text); // Track that we've shown this fact
+                createCardDOM(fact, stackEl.children.length === 0);
+            }
+            const cards = stackEl.querySelectorAll('.tinder-card');
+            currentCardEl = cards[cards.length - 1];
+            initCardEvents(currentCardEl);
+        }
+        function createCardDOM(data, isBottom) {
+            const card = document.createElement('div');
+            card.className = 'tinder-card';
+            card.dataset.isTrue = data.isTrue;
+            card.dataset.text = data.text;
+            const rot = (Math.random() * 4) - 2; 
+            if (isBottom) {
+                card.style.transform = `scale(0.92) translateY(12px) rotate(${rot}deg)`;
+                card.style.zIndex = '0';
+                card.style.opacity = '0.7';
+            } else {
+                card.style.transform = `rotate(${rot}deg)`;
+                card.style.zIndex = '1';
+            }
+            card.innerHTML = `
+                <div class="status-stamp stamp-true">TRUE</div>
+                <div class="status-stamp stamp-false">FALSE</div>
+                <div class="flex-1 flex items-center justify-center pointer-events-none px-4">
+                    <p class="text-2xl font-bold leading-tight select-none fact-text">${data.text}</p>
+                </div>
+                <div class="mt-4 text-xs font-bold uppercase tracking-widest pointer-events-none opacity-40">Fact or Fiction?</div>
+            `;
+            isBottom ? stackEl.insertBefore(card, stackEl.firstChild) : stackEl.appendChild(card);
+        }
+
+        // PARTICLE SYSTEM
+        function createParticles(x, y, type) {
+            const count = 12;
+            for(let i=0; i<count; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                // Checkmark or X
+                p.innerHTML = type === 'correct' 
+                    ? `<svg class="w-8 h-8 text-green-500 drop-shadow-md" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>`
+                    : `<svg class="w-8 h-8 text-red-500 drop-shadow-md" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>`;
+                
+                // Random spread logic
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = 60 + Math.random() * 100; 
+                const tx = Math.cos(angle) * velocity;
+                const ty = Math.sin(angle) * velocity;
+                const rot = (Math.random() - 0.5) * 180;
+
+                p.style.setProperty('--tx', `${tx}px`);
+                p.style.setProperty('--ty', `${ty}px`);
+                p.style.setProperty('--rot', `${rot}deg`);
+                p.style.left = x + 'px';
+                p.style.top = y + 'px';
+                
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 800);
+            }
+        }
+
+        let startX;
+        function initCardEvents(card) {
+            card.addEventListener('touchstart', e => { if(gameState.status==='playing'){ startX=e.touches[0].clientX; gameState.isDragging=true; card.style.transition='none'; }});
+            card.addEventListener('touchmove', e => { if(gameState.isDragging){ updateCardTransform(e.touches[0].clientX - startX); }});
+            card.addEventListener('touchend', e => { if(gameState.isDragging){ handleTapOrSwipe(e.changedTouches[0].clientX - startX); }});
+            card.addEventListener('mousedown', e => { if(gameState.status==='playing'){ startX=e.clientX; gameState.isDragging=true; card.style.transition='none'; }});
+            document.addEventListener('mousemove', e => { if(gameState.isDragging){ e.preventDefault(); updateCardTransform(e.clientX - startX); }});
+            document.addEventListener('mouseup', e => { if(gameState.isDragging){ handleTapOrSwipe(e.clientX - startX); }});
+        }
+        function updateCardTransform(deltaX) {
+            const rotate = deltaX * 0.05;
+            currentCardEl.style.transform = `translateX(${deltaX}px) rotate(${rotate}deg)`;
+            // Remove stamp preview during drag - we only show the correct answer after swipe
+        }
+        function handleTapOrSwipe(deltaX) {
+            gameState.isDragging = false;
+            if (Math.abs(deltaX) < 5) {
+                const now = new Date().getTime();
+                if (now - gameState.lastTapTime < 300) saveCurrentCardFact();
+                gameState.lastTapTime = now;
+                currentCardEl.style.transition = 'transform 0.2s ease-out';
+                currentCardEl.style.transform = 'translateX(0) rotate(0)';
+                return;
+            }
+            if (deltaX > 100) processSwipe(true, currentCardEl);
+            else if (deltaX < -100) processSwipe(false, currentCardEl);
+            else {
+                currentCardEl.style.transition = 'transform 0.2s ease-out';
+                currentCardEl.style.transform = 'translateX(0) rotate(0)';
+            }
+        }
+
+        function processSwipe(isTrue, card) {
+            // 1. Lock interaction
+            gameState.isDragging = false; 
+
+            // 2. Clone card to stop any drag momentum/events and allow us to animate it
+            const clone = card.cloneNode(true);
+            card.parentNode.replaceChild(clone, card);
+            card = clone;
+            
+            // 3. Logic
+            const factTrue = card.dataset.isTrue === 'true';
+            const correct = (isTrue && factTrue) || (!isTrue && !factTrue);
+
+            // 4. Visuals: Stamps on Card
+            const trueStamp = card.querySelector('.stamp-true');
+            const falseStamp = card.querySelector('.stamp-false');
+
+            trueStamp.classList.remove('stamp-visible');
+            falseStamp.classList.remove('stamp-visible-false');
+            trueStamp.style.opacity = '0';
+            falseStamp.style.opacity = '0';
+
+            if(factTrue) trueStamp.classList.add('stamp-visible');
+            else falseStamp.classList.add('stamp-visible-false');
+
+            // 5. Visuals: Feedback & Particles
+            showFloatingFeedback(correct);
+            
+            // Add Background Flash
+            if (correct) {
+                document.body.classList.add('anim-flash-green');
+                setTimeout(() => document.body.classList.remove('anim-flash-green'), 400);
+            } else {
+                document.body.classList.add('anim-flash-red');
+                document.body.classList.add('anim-shake'); // Shake screen on error
+                setTimeout(() => {
+                    document.body.classList.remove('anim-flash-red');
+                    document.body.classList.remove('anim-shake');
+                }, 400);
+            }
+
+            // Link Buttons - Animate the corresponding button
+            const btnToAnimate = isTrue ? btnTrue : btnFalse;
+            btnToAnimate.classList.add('simulated-active');
+            setTimeout(() => btnToAnimate.classList.remove('simulated-active'), 150);
+            
+            // Spawn Particles at center of screen (approximate card center)
+            const rect = card.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            createParticles(centerX, centerY, correct ? 'correct' : 'wrong');
+
+            // 6. Scoring
+            if (correct) {
+                gameState.currentStreak++;
+                gameState.score += (10 + gameState.currentStreak * 2);
+                gameState.correctCount++;
+                playSound('correct');
+            } else {
+                gameState.score = Math.max(0, gameState.score - 5);
+                gameState.wrongCount++;
+                gameState.currentStreak = 0;
+                playSound('wrong');
+            }
+            scoreEl.innerText = gameState.score;
+            updateStreakUI(gameState.currentStreak);
+
+            // 7. Animate Card Exit (FAST now, no long pause)
+            setTimeout(() => {
+                const dir = isTrue ? 1 : -1;
+                card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1)'; 
+                card.style.transform = `translateX(${dir * window.innerWidth * 1.5}px) rotate(${dir * 45}deg)`;
+                
+                // 8. Cleanup and Next Card
+                setTimeout(() => {
+                    card.remove();
+                    const next = stackEl.querySelector('.tinder-card');
+                    if(next) {
+                        next.style.transition = 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                        next.style.transform = 'scale(1) translateY(0) rotate(0deg)';
+                        next.style.opacity = '1';
+                        next.style.zIndex = '1';
+                        initCardEvents(next);
+                        currentCardEl = next;
+                        if(currentDeck.length === 0) currentDeck = buildBalancedDeck();
+                        createCardDOM(currentDeck.pop(), true);
+                    }
+                }, 300); 
+            }, 50); 
+        }
+
+        function showFloatingFeedback(isCorrect) {
+            const el = document.createElement('div');
+            el.className = 'feedback-anim';
+            el.innerText = isCorrect ? 'CORRECT!' : 'WRONG!';
+            el.style.color = isCorrect ? '#16a34a' : '#dc2626'; // Green or Red
+            el.style.left = '0';
+            el.style.width = '100%';
+            el.style.textAlign = 'center';
+            el.style.top = '40%';
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function updateStreakUI(s) {
+            streakEl.innerText = `🔥 ${s}x`;
+            streakEl.style.opacity = s > 1 ? 1 : 0;
+        }
+        function saveCurrentCardFact() {
+            if(!currentCardEl) return;
+            const text = currentCardEl.dataset.text;
+            const isTrue = currentCardEl.dataset.isTrue === 'true';
+            if(savedFacts.some(f => f.text === text)) return showToast("Already saved!");
+            savedFacts.push({ text, isTrue });
+            localStorage.setItem('factSwipeSaved', JSON.stringify(savedFacts));
+            playSound('save');
+            const h = document.createElement('div'); 
+            h.className='heart-anim'; 
+            h.innerHTML='<svg class="w-32 h-32 fill-pink-500" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+            h.style.position = 'fixed';
+            h.style.left='calc(50% - 4rem)'; 
+            h.style.top='calc(45% - 4rem)';
+            document.body.appendChild(h);
+            setTimeout(()=>h.remove(), 700);
+            showToast("Saved to Vault!");
+        }
+        function showToast(msg) {
+            const t = document.createElement('div'); 
+            t.className='toast-msg'; 
+            t.innerText=msg;
+            document.body.appendChild(t); 
+            setTimeout(()=>t.remove(), 2500);
+        }
+        function renderVault() {
+            const list = document.getElementById('vault-list'); 
+            list.innerHTML = '';
+            if(savedFacts.length===0) {
+                list.innerHTML = `<div class="text-center opacity-40 mt-16"><svg class="w-16 h-16 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7m-9 3v8m0 0l-3-3m3 3l3-3"/></svg><p class="text-lg font-bold">Vault is empty!</p></div>`;
+            } else {
+                savedFacts.forEach((f,i) => {
+                    const d = document.createElement('div'); 
+                    d.className = 'sketch-box p-5 relative';
+                    d.innerHTML = `
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="font-bold text-xs uppercase px-3 py-1.5 rounded-full ${f.isTrue?'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200':'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'}">
+                                ${f.isTrue?'FACT':'FICTION'}
+                            </span>
+                            <button onclick="delFact(${i})" class="opacity-40 hover:opacity-100 hover:text-red-600 transition-all">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                        <p class="font-bold text-lg leading-snug fact-text">${f.text}</p>
+                    `;
+                    list.appendChild(d);
+                });
+            }
+        }
+        window.delFact = (i) => { 
+            savedFacts.splice(i,1); 
+            localStorage.setItem('factSwipeSaved', JSON.stringify(savedFacts)); 
+            renderVault(); 
+        };
+
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('tutorial-start-btn').addEventListener('click', () => { settings.tutorialShown=true; saveSettings(); startGame(); });
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+        document.getElementById('menu-btn').addEventListener('click', () => showScreen('intro'));
+        document.getElementById('vault-btn').addEventListener('click', () => { showScreen('vault'); renderVault(); });
+        document.getElementById('vault-back-btn').addEventListener('click', () => showScreen('intro'));
+        document.getElementById('settings-btn').addEventListener('click', () => { showScreen('settings'); updateSettingsUI(); });
+        document.getElementById('settings-back-btn').addEventListener('click', () => {
+            console.log('Settings back button clicked');
+            showScreen('intro');
+        });
+        document.getElementById('how-to-play-btn').addEventListener('click', () => {
+            tutorialReturnScreen = 'settings';
+            showScreen('tutorial');
+        });
+        document.getElementById('tutorial-back-btn').addEventListener('click', () => {
+            showScreen(tutorialReturnScreen);
+        });
+        document.getElementById('pause-btn').addEventListener('click', pauseGame);
+        document.getElementById('resume-btn').addEventListener('click', resumeGame);
+        document.getElementById('pause-menu-btn').addEventListener('click', () => showScreen('intro'));
+
+        // UPDATED BUTTON LOGIC HERE
+        btnTrue.addEventListener('click', () => { 
+            if(currentCardEl && gameState.status === 'playing') { 
+                // Removed manual class manipulation, simply process swipe
+                processSwipe(true, currentCardEl); 
+            }
+        });
+        btnFalse.addEventListener('click', () => { 
+            if(currentCardEl && gameState.status === 'playing') { 
+                // Removed manual class manipulation, simply process swipe
+                processSwipe(false, currentCardEl); 
+            }
+        });
+
+        window.onload = async () => { 
+            loadSettings(); 
+            showScreen('intro');
+            
+            // Show loading state
+            const startBtn = document.getElementById('start-btn');
+            const startBtnText = document.getElementById('start-btn-text');
+            const startBtnLoading = document.getElementById('start-btn-loading');
+            
+            startBtn.disabled = true;
+            startBtn.style.opacity = '0.6';
+            startBtnText.classList.add('hidden');
+            startBtnLoading.classList.remove('hidden');
+            
+            // Load facts from API
+            await initializeFactPool();
+            
+            // Enable button
+            startBtn.disabled = false;
+            startBtn.style.opacity = '1';
+            startBtnText.classList.remove('hidden');
+            startBtnLoading.classList.add('hidden');
+        };
+    </script>
+</body>
+</html>
